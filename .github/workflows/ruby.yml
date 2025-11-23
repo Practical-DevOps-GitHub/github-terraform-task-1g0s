@@ -43,6 +43,9 @@ jobs:
       - name: Terraform Init
         run: terraform init
       - name: Test Terraform Config
+        env:
+          TF_VAR_pat_token: ${{ secrets.PAT }}
+          GITHUB_TOKEN: ${{ steps.my-app.outputs.token }}
         run: |
           terraform validate
           terraform plan -no-color -out tfplan
