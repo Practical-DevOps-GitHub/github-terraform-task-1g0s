@@ -7,37 +7,37 @@ terraform {
   }
 }
 
-# Provider uses GITHUB_TOKEN environment variable automatically
+variable "pat_token" {
+  description = "Personal Access Token to store in repository secrets"
+  type        = string
+  sensitive   = true
+}
+
 provider "github" {
   owner = "Practical-DevOps-GitHub"
 }
 
-# Data source for the repository
 data "github_repository" "repo" {
   full_name = "Practical-DevOps-GitHub/github-terraform-task-1g0s"
 }
 
-# Create develop branch from main
 resource "github_branch" "develop" {
   repository    = data.github_repository.repo.name
   branch        = "develop"
   source_branch = "main"
 }
 
-# Set develop as default branch
 resource "github_branch_default" "default" {
   repository = data.github_repository.repo.name
   branch     = github_branch.develop.branch
 }
 
-# Add collaborator
 resource "github_repository_collaborator" "collaborator" {
   repository = data.github_repository.repo.name
   username   = "softservedata"
   permission = "push"
 }
 
-# Branch protection for develop - requires 2 approvals
 resource "github_branch_protection" "develop_protection" {
   repository_id = data.github_repository.repo.node_id
   pattern       = "develop"
@@ -52,7 +52,6 @@ resource "github_branch_protection" "develop_protection" {
   depends_on = [github_branch.develop]
 }
 
-# Branch protection for main - requires code owner review
 resource "github_branch_protection" "main_protection" {
   repository_id = data.github_repository.repo.node_id
   pattern       = "main"
@@ -65,7 +64,6 @@ resource "github_branch_protection" "main_protection" {
   enforce_admins = false
 }
 
-# Add deploy key
 resource "github_repository_deploy_key" "deploy_key" {
   repository = data.github_repository.repo.name
   title      = "DEPLOY_KEY"
@@ -73,21 +71,12 @@ resource "github_repository_deploy_key" "deploy_key" {
   read_only  = true
 }
 
-# Add PAT to actions secrets
 resource "github_actions_secret" "pat_secret" {
   repository      = data.github_repository.repo.name
   secret_name     = "PAT"
   plaintext_value = var.pat_token
 }
 
-# Variable for PAT token (should be passed as TF_VAR_pat_token environment variable)
-variable "pat_token" {
-  description = "Personal Access Token to store in repository secrets"
-  type        = string
-  sensitive   = true
-}
-
-# Create CODEOWNERS file in .github directory on main branch
 resource "github_repository_file" "codeowners" {
   repository          = data.github_repository.repo.name
   branch              = "main"
@@ -97,7 +86,6 @@ resource "github_repository_file" "codeowners" {
   overwrite_on_create = true
 }
 
-# Create pull request template
 resource "github_repository_file" "pr_template" {
   repository          = data.github_repository.repo.name
   branch              = "main"
